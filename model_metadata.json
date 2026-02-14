@@ -1,0 +1,21 @@
+{
+  "model_name": "lstm_attention_phishing_detector",
+  "dataset_file": "datasets.csv",
+  "total_samples": 36295,
+  "training_samples": 29036,
+  "test_samples": 7259,
+  "num_classes": 4,
+  "classes": [
+    "benign",
+    "malware",
+    "phishing",
+    "spam"
+  ],
+  "max_words": 15000,
+  "max_len": 120,
+  "embed_dim": 128,
+  "lstm_units": 96,
+  "accuracy": 0.9400031089782716,
+  "best_val_accuracy": 0.9400173187255859,
+  "training_date": "2026-02-14 16:21:10"
+}

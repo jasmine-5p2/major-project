@@ -1,0 +1,23 @@
+# Virtual Environment - DON'T upload this!
+venv/
+env/
+.venv
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment Variables - SECURITY!
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
