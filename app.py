@@ -10,7 +10,7 @@ Author: PhishGuard Team
 
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, validator
 from typing import List, Optional, Dict
 import numpy as np
@@ -293,24 +293,33 @@ async def startup_event():
         print("API will start but predictions will fail")
 
 # =============================================
+# FRONTEND SERVING
+# =============================================
+@app.get("/", response_class=HTMLResponse, tags=["General"])
+async def serve_frontend():
+    """
+    Serve the frontend HTML page
+    """
+    html_file = Path("index.html")
+    if html_file.exists():
+        with open(html_file, 'r', encoding='utf-8') as f:
+            return HTMLResponse(content=f.read())
+    else:
+        return HTMLResponse(content="""
+        <!DOCTYPE html>
+        <html>
+        <head><title>PhishGuard AI</title></head>
+        <body>
+            <h1>PhishGuard AI API</h1>
+            <p>Frontend not found. Please ensure index.html is in the same directory.</p>
+            <p>API Documentation: <a href="/docs">/docs</a></p>
+        </body>
+        </html>
+        """)
+
+# =============================================
 # API ENDPOINTS
 # =============================================
-
-@app.get("/", tags=["General"])
-async def root():
-    """
-    Root endpoint - API information
-    """
-    return {
-        "message": "PhishGuard AI - Phishing Detection API",
-        "version": "1.0.0",
-        "endpoints": {
-            "health": "/health",
-            "predict": "/api/predict",
-            "predict_batch": "/api/predict/batch",
-            "docs": "/docs"
-        }
-    }
 
 @app.get("/health", response_model=HealthResponse, tags=["General"])
 async def health_check():
@@ -499,11 +508,11 @@ if __name__ == "__main__":
     import uvicorn
     import os
     
-    PORT = int(os.environ.get("PORT", 8000))  # ← Add this
+    PORT = int(os.environ.get("PORT", 8000))
     
     uvicorn.run(
         "app:app",
         host="0.0.0.0",
-        port=PORT,  # ← Change this
+        port=PORT,
         log_level="info"
     )
