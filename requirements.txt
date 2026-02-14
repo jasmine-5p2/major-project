@@ -1,15 +1,15 @@
-# Core Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
+# PhishGuard AI - Optimized Requirements for Render
+# Using tensorflow-cpu for faster builds and lower memory usage
 
-# Machine Learning
-tensorflow==2.17.1
-numpy==1.26.4
-pandas==2.1.3
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+numpy>=1.24.0
+pandas>=2.0.0
 
-# File Processing
-python-multipart==0.0.6
+# Use tensorflow-cpu instead of tensorflow (lighter, faster)
+# This is perfect for CPU-only inference on Render
+tensorflow-cpu>=2.15.0
 
-# Optional: For production deployment
-gunicorn==21.2.0
+# For file upload support
+python-multipart>=0.0.6
