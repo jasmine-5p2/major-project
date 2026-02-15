@@ -1,9 +1,9 @@
 """
-PHISHGUARD AI - FASTAPI BACKEND (FIXED)
-========================================
+PHISHGUARD AI - FASTAPI BACKEND (WEIGHTS-LOADING VERSION)
+==========================================================
 
-FastAPI backend for LSTM + Attention Phishing Detection Model
-Fixed model loading with proper error handling
+This version loads model from architecture JSON + weights H5 file
+to avoid TensorFlow 2.14/2.15 .keras serialization bugs
 
 Author: PhishGuard Team
 """
@@ -23,14 +23,15 @@ from pathlib import Path
 import tensorflow as tf
 from tensorflow.keras.preprocessing.text import tokenizer_from_json
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import model_from_json
 from tensorflow.keras.layers import Layer
 from tensorflow.keras import backend as K
 
 # =============================================
 # CONFIGURATION
 # =============================================
-MODEL_FILE = "final_lstm_attention_phishing_detector.keras"
+MODEL_ARCHITECTURE_FILE = "model_architecture.json"
+MODEL_WEIGHTS_FILE = "model_weights.h5"
 TOKENIZER_FILE = "tokenizer.json"
 LABEL_CLASSES_FILE = "label_classes.npy"
 METADATA_FILE = "model_metadata.json"
@@ -90,6 +91,7 @@ def clean_url(url: str) -> str:
 class PhishingDetector:
     """
     Singleton phishing detection model handler
+    Loads model from architecture JSON + weights H5
     """
     _instance = None
     
@@ -114,7 +116,7 @@ class PhishingDetector:
     
     def _load_components(self):
         """
-        Load model, tokenizer, and metadata with improved error handling
+        Load model from architecture + weights, tokenizer, and metadata
         """
         print("="*70)
         print("LOADING PHISHING DETECTOR")
@@ -160,44 +162,63 @@ class PhishingDetector:
             print(f"✗ Error loading tokenizer: {e}")
             raise
         
-        # Load model with comprehensive error handling
+        # Load model from architecture + weights
         try:
-            # First, check if model file exists
-            model_path = Path(MODEL_FILE)
-            if not model_path.exists():
-                print(f"✗ Error: Model file '{MODEL_FILE}' not found")
+            # Check if files exist
+            arch_path = Path(MODEL_ARCHITECTURE_FILE)
+            weights_path = Path(MODEL_WEIGHTS_FILE)
+            
+            if not arch_path.exists():
+                print(f"✗ Error: Architecture file '{MODEL_ARCHITECTURE_FILE}' not found")
                 print(f"  Current directory: {Path.cwd()}")
-                available_models = list(Path.cwd().glob('*.keras')) + list(Path.cwd().glob('*.h5'))
-                print(f"  Available model files: {[str(m) for m in available_models]}")
-                raise FileNotFoundError(f"Model file not found: {MODEL_FILE}")
+                print(f"  Available files: {list(Path.cwd().glob('*.json'))}")
+                raise FileNotFoundError(f"Architecture file not found: {MODEL_ARCHITECTURE_FILE}")
             
-            print(f"  Loading model from '{MODEL_FILE}'...")
-            print(f"  Model file size: {model_path.stat().st_size / (1024*1024):.2f} MB")
+            if not weights_path.exists():
+                print(f"✗ Error: Weights file '{MODEL_WEIGHTS_FILE}' not found")
+                print(f"  Available files: {list(Path.cwd().glob('*.h5'))}")
+                raise FileNotFoundError(f"Weights file not found: {MODEL_WEIGHTS_FILE}")
             
-            # Load with custom objects and compile=False for inference
-            self.model = load_model(
-                MODEL_FILE,
-                custom_objects={'AttentionLayer': AttentionLayer},
-                compile=False
+            # Load architecture
+            print(f"  Loading model architecture from '{MODEL_ARCHITECTURE_FILE}'...")
+            with open(MODEL_ARCHITECTURE_FILE, 'r') as f:
+                model_json = f.read()
+            
+            self.model = model_from_json(
+                model_json,
+                custom_objects={'AttentionLayer': AttentionLayer}
             )
+            print(f"✓ Loaded model architecture")
             
-            # Recompile for inference (optional but recommended)
+            # Build model by calling it with dummy data
+            print(f"  Building model with dummy input...")
+            dummy_input = np.zeros((1, self.max_len), dtype=np.int32)
+            _ = self.model(dummy_input)
+            print(f"✓ Model built successfully")
+            
+            # Load weights
+            print(f"  Loading weights from '{MODEL_WEIGHTS_FILE}'...")
+            weights_size_mb = weights_path.stat().st_size / (1024*1024)
+            print(f"  Weights file size: {weights_size_mb:.2f} MB")
+            
+            self.model.load_weights(MODEL_WEIGHTS_FILE)
+            print(f"✓ Loaded weights successfully")
+            
+            # Compile for inference
             self.model.compile(
                 loss="sparse_categorical_crossentropy",
                 optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.001),
                 metrics=["accuracy"]
             )
+            print(f"✓ Model compiled")
             
-            print(f"✓ Loaded model from '{MODEL_FILE}'")
-            
-            # Test the model with dummy input
+            # Test inference
             print(f"  Testing model inference...")
-            dummy_input = np.zeros((1, self.max_len), dtype=np.int32)
             test_pred = self.model.predict(dummy_input, verbose=0)
             print(f"✓ Model inference test successful (output shape: {test_pred.shape})")
             
         except FileNotFoundError as e:
-            print(f"✗ Model file not found: {e}")
+            print(f"✗ Required file not found: {e}")
             raise
         except Exception as e:
             print(f"✗ Failed to initialize detector: {e}")
@@ -342,13 +363,12 @@ async def startup_event():
         print(f"✗ Failed to initialize detector: {e}")
         print("API will start but predictions will fail")
         print(f"\nTroubleshooting:")
-        print(f"  1. Check if model file exists: {MODEL_FILE}")
-        print(f"  2. Verify all required files are present:")
-        print(f"     - {MODEL_FILE}")
+        print(f"  1. Check if files exist:")
+        print(f"     - {MODEL_ARCHITECTURE_FILE}")
+        print(f"     - {MODEL_WEIGHTS_FILE}")
         print(f"     - {TOKENIZER_FILE}")
         print(f"     - {LABEL_CLASSES_FILE}")
-        print(f"     - {METADATA_FILE}")
-        print(f"  3. Ensure model was saved using: model.save('model.keras')")
+        print(f"  2. Run convert_model_to_weights.py to generate files")
 
 # =============================================
 # FRONTEND SERVING
@@ -372,16 +392,16 @@ async def serve_frontend():
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
                 .error {{ background: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; }}
                 .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .success {{ background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0; }}
             </style>
         </head>
         <body>
             <h1>🛡️ PhishGuard AI API</h1>
-            {"<div class='error'><strong>⚠️ Model Error:</strong><br>" + initialization_error + "</div>" if initialization_error else ""}
+            {"<div class='error'><strong>⚠️ Model Error:</strong><br>" + initialization_error + "</div>" if initialization_error else "<div class='success'><strong>✓ API is running!</strong></div>"}
             <div class='info'>
                 <p><strong>API Documentation:</strong> <a href="/docs">/docs</a></p>
                 <p><strong>Health Check:</strong> <a href="/health">/health</a></p>
             </div>
-            <p>Frontend HTML not found. Please ensure index.html is in the same directory.</p>
         </body>
         </html>
         """)
@@ -414,10 +434,6 @@ async def health_check():
 async def predict_url(request: URLRequest):
     """
     Predict category for a single URL
-    
-    - **url**: The URL to analyze
-    
-    Returns prediction with confidence scores for all categories
     """
     if detector is None or detector.model is None:
         raise HTTPException(
@@ -435,10 +451,6 @@ async def predict_url(request: URLRequest):
 async def predict_batch(request: BatchURLRequest):
     """
     Predict categories for multiple URLs
-    
-    - **urls**: List of URLs to analyze (max 1000)
-    
-    Returns predictions for all URLs with summary statistics
     """
     if detector is None or detector.model is None:
         raise HTTPException(
@@ -466,12 +478,6 @@ async def predict_batch(request: BatchURLRequest):
 async def predict_from_file(file: UploadFile = File(...)):
     """
     Predict categories for URLs from uploaded file
-    
-    Supports:
-    - Text files (.txt) - one URL per line
-    - CSV files (.csv) - must have 'url' column
-    
-    Returns predictions in JSON format
     """
     if detector is None or detector.model is None:
         raise HTTPException(
@@ -543,6 +549,7 @@ async def get_model_stats():
             "name": detector.metadata.get('model_name') if detector.metadata else "LSTM + Attention",
             "accuracy": detector.metadata.get('accuracy') if detector.metadata else None,
             "max_sequence_length": detector.max_len,
+            "loading_method": "Architecture JSON + Weights H5 (TF 2.14/2.15 compatible)"
         },
         "categories": detector.label_classes.tolist() if detector.label_classes is not None else [],
         "preprocessing": {
