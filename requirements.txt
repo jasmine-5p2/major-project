@@ -1,15 +1,7 @@
-# PhishGuard AI - Optimized Requirements for Render
-# Using tensorflow-cpu for faster builds and lower memory usage
-
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-pydantic>=2.5.0
-numpy>=1.24.0
-pandas>=2.0.0
-
-# Use tensorflow-cpu instead of tensorflow (lighter, faster)
-# This is perfect for CPU-only inference on Render
-tensorflow-cpu>=2.15.0
-
-# For file upload support
-python-multipart>=0.0.6
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.6.0
+numpy==1.26.4
+pandas==2.1.4
+tensorflow-cpu==2.15.0
+python-multipart==0.0.6
