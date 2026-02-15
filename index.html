@@ -155,6 +155,11 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
+        .batch-input {
+            min-height: 150px;
+            resize: vertical;
+        }
+
         .btn {
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             border: none;
@@ -163,6 +168,15 @@
             cursor: pointer;
             font-family: 'JetBrains Mono', monospace;
             margin-top: 1rem;
+            color: var(--bg-primary);
+            font-weight: 600;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
         }
 
         .results-section { margin-top: 2rem; }
@@ -173,6 +187,193 @@
             color: var(--accent-danger);
             padding: 1rem;
             border-radius: 8px;
+        }
+
+        /* Results Visualization Styles */
+        .result-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-url {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+
+        .result-verdict {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .verdict-safe {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+        }
+
+        .verdict-danger {
+            background: rgba(255, 51, 102, 0.15);
+            color: var(--accent-danger);
+            border: 1px solid var(--accent-danger);
+        }
+
+        .verdict-warning {
+            background: rgba(255, 167, 38, 0.15);
+            color: var(--accent-warning);
+            border: 1px solid var(--accent-warning);
+        }
+
+        .confidence-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .confidence-label {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .confidence-bar {
+            flex: 1;
+            height: 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 12px;
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+        }
+
+        .confidence-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--bg-primary);
+        }
+
+        .probabilities-title {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .probabilities-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .probability-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .probability-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-width: 100px;
+            text-transform: uppercase;
+        }
+
+        .probability-bar-container {
+            flex: 1;
+            height: 32px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .probability-bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.8s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            justify-content: space-between;
+        }
+
+        .probability-percentage {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--bg-primary);
+        }
+
+        .bar-benign {
+            background: linear-gradient(90deg, var(--accent-primary), #00cc6a);
+        }
+
+        .bar-phishing {
+            background: linear-gradient(90deg, var(--accent-danger), #cc2952);
+        }
+
+        .bar-malware {
+            background: linear-gradient(90deg, var(--accent-danger), #cc2952);
+        }
+
+        .bar-spam {
+            background: linear-gradient(90deg, var(--accent-warning), #e68900);
+        }
+
+        .bar-defacement {
+            background: linear-gradient(90deg, var(--accent-danger), #cc2952);
+        }
+
+        .label-benign { color: var(--accent-primary); }
+        .label-phishing { color: var(--accent-danger); }
+        .label-malware { color: var(--accent-danger); }
+        .label-spam { color: var(--accent-warning); }
+        .label-defacement { color: var(--accent-danger); }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .batch-results {
+            display: grid;
+            gap: 1.5rem;
         }
     </style>
 </head>
@@ -209,7 +410,7 @@
 
         <div id="batch-tab" class="tab-content">
             <textarea class="batch-input" id="batchInput"
-                      placeholder="https://example1.com&#10;https://example2.com"></textarea>
+                      placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com" rows="6"></textarea>
             <button class="btn" onclick="analyzeBatch()">Analyze Batch</button>
         </div>
 
@@ -248,13 +449,79 @@ function handleKeyPress(e) {
     if (e.key === "Enter") analyzeURL();
 }
 
+function getCategoryColor(category) {
+    const colors = {
+        benign: 'benign',
+        phishing: 'phishing',
+        malware: 'malware',
+        spam: 'spam',
+        defacement: 'defacement'
+    };
+    return colors[category] || 'benign';
+}
+
+function createResultCard(data, index) {
+    const isSafe = data.is_safe || data.predicted_category === 'benign';
+    const verdictClass = isSafe ? 'verdict-safe' : 'verdict-danger';
+    const verdictIcon = isSafe ? '✓' : '⚠';
+    const verdictText = isSafe ? 'SAFE' : 'THREAT DETECTED';
+    
+    const confidencePercent = (data.confidence * 100).toFixed(2);
+    
+    // Create probability bars HTML
+    let probabilityBarsHTML = '';
+    for (const [category, probability] of Object.entries(data.all_probabilities)) {
+        const percentage = (probability * 100).toFixed(4);
+        const barClass = getCategoryColor(category);
+        
+        probabilityBarsHTML += `
+            <div class="probability-row">
+                <div class="probability-label label-${barClass}">${category.toUpperCase()}</div>
+                <div class="probability-bar-container">
+                    <div class="probability-bar-fill bar-${barClass}" style="width: ${Math.max(percentage, 0.5)}%">
+                        <span class="probability-percentage">${percentage}%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+        <div class="result-header">
+            <div class="result-url">${data.url}</div>
+            <div class="result-verdict ${verdictClass}">
+                <span>${verdictIcon}</span>
+                <span>${verdictText}</span>
+            </div>
+        </div>
+        
+        <div class="confidence-display">
+            <span class="confidence-label">Confidence:</span>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: ${confidencePercent}%">
+                    <span class="confidence-text">${confidencePercent}%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="probabilities-title">Category Probabilities</div>
+        <div class="probabilities-container">
+            ${probabilityBarsHTML}
+        </div>
+    `;
+    
+    return card;
+}
+
 async function analyzeURL() {
     const url = document.getElementById("urlInput").value.trim();
-    if (!url) return alert("Enter URL");
+    if (!url) return alert("Please enter a URL");
 
     const results = document.getElementById("results");
     results.style.display = "block";
-    results.innerHTML = "Analyzing...";
+    results.innerHTML = '<div class="loading">Analyzing URL...</div>';
 
     try {
         const res = await fetch(`${API_URL}/api/predict`, {
@@ -264,21 +531,27 @@ async function analyzeURL() {
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
-        results.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        
+        const card = createResultCard(data, 0);
+        results.innerHTML = '';
+        results.appendChild(card);
+        
     } catch {
-        results.innerHTML = `<div class="error-message">API Error</div>`;
+        results.innerHTML = `<div class="error-message">Failed to analyze URL. Please check API connection.</div>`;
     }
 }
 
 async function analyzeBatch() {
     const urls = document.getElementById("batchInput").value
-        .split("\n").filter(u => u.trim());
+        .split("\n")
+        .map(u => u.trim())
+        .filter(u => u);
 
-    if (!urls.length) return alert("Enter URLs");
+    if (!urls.length) return alert("Please enter at least one URL");
 
     const results = document.getElementById("results");
     results.style.display = "block";
-    results.innerHTML = "Analyzing batch...";
+    results.innerHTML = '<div class="loading">Analyzing batch...</div>';
 
     try {
         const res = await fetch(`${API_URL}/api/predict/batch`, {
@@ -287,13 +560,25 @@ async function analyzeBatch() {
             body: JSON.stringify({urls})
         });
         if (!res.ok) throw new Error();
-        const data = await res.json();
-        results.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        const batchData = await res.json();
+        
+        const container = document.createElement('div');
+        container.className = 'batch-results';
+        
+        batchData.results.forEach((data, index) => {
+            const card = createResultCard(data, index);
+            container.appendChild(card);
+        });
+        
+        results.innerHTML = '';
+        results.appendChild(container);
+        
     } catch {
-        results.innerHTML = `<div class="error-message">API Error</div>`;
+        results.innerHTML = `<div class="error-message">Failed to analyze batch. Please check API connection.</div>`;
     }
 }
 
+// Initialize
 checkAPIStatus();
 setInterval(checkAPIStatus, 30000);
 </script>
