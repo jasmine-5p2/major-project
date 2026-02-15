@@ -1,9 +1,9 @@
 """
-PHISHGUARD AI - FASTAPI BACKEND
-================================
+PHISHGUARD AI - FASTAPI BACKEND (FIXED)
+========================================
 
 FastAPI backend for LSTM + Attention Phishing Detection Model
-Provides REST API endpoints for URL classification
+Fixed model loading with proper error handling
 
 Author: PhishGuard Team
 """
@@ -114,7 +114,7 @@ class PhishingDetector:
     
     def _load_components(self):
         """
-        Load model, tokenizer, and metadata
+        Load model, tokenizer, and metadata with improved error handling
         """
         print("="*70)
         print("LOADING PHISHING DETECTOR")
@@ -132,6 +132,9 @@ class PhishingDetector:
             print(f"⚠ Warning: Metadata file '{METADATA_FILE}' not found")
             print("  Using default max_len=120")
             self.max_len = 120
+        except Exception as e:
+            print(f"⚠ Warning: Error loading metadata: {e}")
+            self.max_len = 120
         
         # Load label classes
         try:
@@ -139,6 +142,9 @@ class PhishingDetector:
             print(f"✓ Loaded {len(self.label_classes)} label classes")
         except FileNotFoundError:
             print(f"✗ Error: Label classes file '{LABEL_CLASSES_FILE}' not found")
+            raise
+        except Exception as e:
+            print(f"✗ Error loading label classes: {e}")
             raise
         
         # Load tokenizer
@@ -150,16 +156,54 @@ class PhishingDetector:
         except FileNotFoundError:
             print(f"✗ Error: Tokenizer file '{TOKENIZER_FILE}' not found")
             raise
+        except Exception as e:
+            print(f"✗ Error loading tokenizer: {e}")
+            raise
         
-        # Load model
+        # Load model with comprehensive error handling
         try:
+            # First, check if model file exists
+            model_path = Path(MODEL_FILE)
+            if not model_path.exists():
+                print(f"✗ Error: Model file '{MODEL_FILE}' not found")
+                print(f"  Current directory: {Path.cwd()}")
+                available_models = list(Path.cwd().glob('*.keras')) + list(Path.cwd().glob('*.h5'))
+                print(f"  Available model files: {[str(m) for m in available_models]}")
+                raise FileNotFoundError(f"Model file not found: {MODEL_FILE}")
+            
+            print(f"  Loading model from '{MODEL_FILE}'...")
+            print(f"  Model file size: {model_path.stat().st_size / (1024*1024):.2f} MB")
+            
+            # Load with custom objects and compile=False for inference
             self.model = load_model(
                 MODEL_FILE,
-                custom_objects={'AttentionLayer': AttentionLayer}
+                custom_objects={'AttentionLayer': AttentionLayer},
+                compile=False
             )
+            
+            # Recompile for inference (optional but recommended)
+            self.model.compile(
+                loss="sparse_categorical_crossentropy",
+                optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.001),
+                metrics=["accuracy"]
+            )
+            
             print(f"✓ Loaded model from '{MODEL_FILE}'")
-        except FileNotFoundError:
-            print(f"✗ Error: Model file '{MODEL_FILE}' not found")
+            
+            # Test the model with dummy input
+            print(f"  Testing model inference...")
+            dummy_input = np.zeros((1, self.max_len), dtype=np.int32)
+            test_pred = self.model.predict(dummy_input, verbose=0)
+            print(f"✓ Model inference test successful (output shape: {test_pred.shape})")
+            
+        except FileNotFoundError as e:
+            print(f"✗ Model file not found: {e}")
+            raise
+        except Exception as e:
+            print(f"✗ Failed to initialize detector: {e}")
+            print(f"  Error type: {type(e).__name__}")
+            import traceback
+            print(f"  Traceback:\n{traceback.format_exc()}")
             raise
         
         print("\n✓ All components loaded successfully!")
@@ -178,6 +222,9 @@ class PhishingDetector:
         """
         Predict category for a single URL
         """
+        if self.model is None:
+            raise RuntimeError("Model not loaded. Cannot make predictions.")
+            
         processed = self.preprocess_url(url)
         predictions = self.model.predict(processed, verbose=0)[0]
         
@@ -255,6 +302,7 @@ class HealthResponse(BaseModel):
     model_name: Optional[str] = None
     accuracy: Optional[float] = None
     classes: Optional[List[str]] = None
+    error: Optional[str] = None
 
 # =============================================
 # FASTAPI APPLICATION
@@ -278,19 +326,29 @@ app.add_middleware(
 
 # Initialize detector (singleton)
 detector = None
+initialization_error = None
 
 @app.on_event("startup")
 async def startup_event():
     """
     Initialize the model on startup
     """
-    global detector
+    global detector, initialization_error
     try:
         detector = PhishingDetector()
         print("✓ API server ready!")
     except Exception as e:
+        initialization_error = str(e)
         print(f"✗ Failed to initialize detector: {e}")
         print("API will start but predictions will fail")
+        print(f"\nTroubleshooting:")
+        print(f"  1. Check if model file exists: {MODEL_FILE}")
+        print(f"  2. Verify all required files are present:")
+        print(f"     - {MODEL_FILE}")
+        print(f"     - {TOKENIZER_FILE}")
+        print(f"     - {LABEL_CLASSES_FILE}")
+        print(f"     - {METADATA_FILE}")
+        print(f"  3. Ensure model was saved using: model.save('model.keras')")
 
 # =============================================
 # FRONTEND SERVING
@@ -305,14 +363,25 @@ async def serve_frontend():
         with open(html_file, 'r', encoding='utf-8') as f:
             return HTMLResponse(content=f.read())
     else:
-        return HTMLResponse(content="""
+        return HTMLResponse(content=f"""
         <!DOCTYPE html>
         <html>
-        <head><title>PhishGuard AI</title></head>
+        <head>
+            <title>PhishGuard AI</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                .error {{ background: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+            </style>
+        </head>
         <body>
-            <h1>PhishGuard AI API</h1>
-            <p>Frontend not found. Please ensure index.html is in the same directory.</p>
-            <p>API Documentation: <a href="/docs">/docs</a></p>
+            <h1>🛡️ PhishGuard AI API</h1>
+            {"<div class='error'><strong>⚠️ Model Error:</strong><br>" + initialization_error + "</div>" if initialization_error else ""}
+            <div class='info'>
+                <p><strong>API Documentation:</strong> <a href="/docs">/docs</a></p>
+                <p><strong>Health Check:</strong> <a href="/health">/health</a></p>
+            </div>
+            <p>Frontend HTML not found. Please ensure index.html is in the same directory.</p>
         </body>
         </html>
         """)
@@ -329,7 +398,8 @@ async def health_check():
     if detector is None or detector.model is None:
         return HealthResponse(
             status="unhealthy",
-            model_loaded=False
+            model_loaded=False,
+            error=initialization_error
         )
     
     return HealthResponse(
@@ -350,7 +420,10 @@ async def predict_url(request: URLRequest):
     Returns prediction with confidence scores for all categories
     """
     if detector is None or detector.model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Model not loaded. Error: {initialization_error}"
+        )
     
     try:
         result = detector.predict_single(request.url)
@@ -368,7 +441,10 @@ async def predict_batch(request: BatchURLRequest):
     Returns predictions for all URLs with summary statistics
     """
     if detector is None or detector.model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Model not loaded. Error: {initialization_error}"
+        )
     
     try:
         results = detector.predict_batch(request.urls)
@@ -398,7 +474,10 @@ async def predict_from_file(file: UploadFile = File(...)):
     Returns predictions in JSON format
     """
     if detector is None or detector.model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Model not loaded. Error: {initialization_error}"
+        )
     
     try:
         content = await file.read()
@@ -454,7 +533,10 @@ async def get_model_stats():
     Get model statistics and information
     """
     if detector is None or detector.model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Model not loaded. Error: {initialization_error}"
+        )
     
     stats = {
         "model_info": {
@@ -477,7 +559,10 @@ async def get_categories():
     Get list of all detection categories
     """
     if detector is None or detector.label_classes is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail=f"Model not loaded. Error: {initialization_error}"
+        )
     
     return {
         "categories": detector.label_classes.tolist(),
