@@ -500,19 +500,3 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={"detail": "Internal server error occurred"}
     )
-
-# =============================================
-# RUN SERVER
-# =============================================
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    
-    PORT = int(os.environ.get("PORT", 8000))
-    
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=PORT,
-        log_level="info"
-    )
